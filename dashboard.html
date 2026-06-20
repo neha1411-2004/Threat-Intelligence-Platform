@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL — Threat Intelligence Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0D12;
+    --panel:#11151D;
+    --panel-2:#0D1119;
+    --border:#222836;
+    --border-soft:#1A1F2B;
+    --text:#E7EAF0;
+    --muted:#7C879C;
+    --muted-2:#4F5868;
+    --amber:#F5A623;
+    --red:#FF4F5E;
+    --green:#2ED583;
+    --cyan:#3FA9F5;
+    --purple:#A78BFA;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(63,169,245,0.07), transparent),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-mono);
+    min-height:100vh;
+    padding:20px;
+  }
+  .hidden{display:none !important;}
+
+  /* ---------- LOGIN SCREEN ---------- */
+  #loginScreen{
+    min-height:90vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .login-card{
+    width:100%;
+    max-width:360px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    padding:28px;
+  }
+  .login-brand{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin-bottom:4px;
+  }
+  .login-brand .brand-mark{color:var(--green); animation:pulse-mark 2.4s ease-in-out infinite;}
+  .login-brand .brand-name{font-family:var(--font-display); font-weight:700; font-size:20px; letter-spacing:0.08em;}
+  .login-sub{color:var(--muted); font-size:11.5px; margin-bottom:22px; letter-spacing:0.03em;}
+  .login-error{
+    background:rgba(255,79,94,0.1);
+    border:1px solid rgba(255,79,94,0.3);
+    color:var(--red);
+    font-size:11.5px;
+    padding:9px 11px;
+    border-radius:6px;
+    margin-bottom:14px;
+    display:none;
+  }
+  .login-demo{
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid var(--border-soft);
+    font-size:10.5px;
+    color:var(--muted-2);
+    line-height:1.8;
+  }
+  .login-demo b{color:var(--muted);}
+
+  @keyframes pulse-mark{
+    0%,100%{opacity:1; text-shadow:0 0 6px rgba(46,213,131,0.7);}
+    50%{opacity:.45; text-shadow:none;}
+  }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 20px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    margin-bottom:16px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand-mark{color:var(--green); font-size:14px; animation:pulse-mark 2.4s ease-in-out infinite;}
+  .brand-name{font-family:var(--font-display); font-weight:700; font-size:21px; letter-spacing:0.08em;}
+  .brand-sub{color:var(--muted); font-size:11px; letter-spacing:0.12em; border-left:1px solid var(--border); padding-left:10px;}
+  .topbar-right{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .status{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);}
+  .status-dot{width:7px;height:7px;border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:blink 1.6s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .user-chip{
+    display:flex; align-items:center; gap:8px;
+    border:1px solid var(--border-soft);
+    background:var(--panel-2);
+    border-radius:20px;
+    padding:5px 6px 5px 12px;
+    font-size:11.5px;
+  }
+  .role-badge{
+    font-size:9.5px; letter-spacing:0.05em; text-transform:uppercase;
+    padding:3px 8px; border-radius:12px; font-weight:600;
+  }
+  .role-admin{background:rgba(255,79,94,0.15); color:var(--red);}
+  .role-analyst{background:rgba(63,169,245,0.15); color:var(--cyan);}
+  .role-monitor{background:rgba(167,139,250,0.15); color:var(--purple);}
+  .logout-btn{
+    background:transparent; border:1px solid var(--border); color:var(--muted);
+    border-radius:14px; padding:4px 11px; font-size:10.5px; font-family:var(--font-mono);
+    cursor:pointer;
+  }
+  .logout-btn:hover{border-color:var(--red); color:var(--red);}
+
+  /* ---------- STATS ---------- */
+  .stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px;}
+  .stat-card{border:1px solid var(--border); border-radius:10px; padding:16px 18px; background:var(--panel); position:relative; overflow:hidden;}
+  .stat-card::before{content:""; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent, var(--cyan)); opacity:.8;}
+  .stat-label{font-size:10.5px; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase; margin-bottom:8px;}
+  .stat-value{font-family:var(--font-display); font-size:32px; font-weight:600; color:var(--text);}
+  .stat-card.attempts{--accent:var(--cyan);}
+  .stat-card.failed{--accent:var(--amber);}
+  .stat-card.blocked{--accent:var(--red);}
+  .stat-card.events{--accent:var(--green);}
+
+  /* ---------- MAIN GRID ---------- */
+  .main-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:14px; margin-bottom:14px;}
+  .panel{border:1px solid var(--border); border-radius:10px; background:var(--panel); display:flex; flex-direction:column; min-height:300px; max-height:380px;}
+  .panel-header{display:flex; justify-content:space-between; align-items:center; padding:13px 16px; border-bottom:1px solid var(--border-soft);}
+  .panel-title{font-family:var(--font-display); font-size:13px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;}
+  .panel-count{font-size:11px; color:var(--muted); background:var(--panel-2); border:1px solid var(--border-soft); border-radius:20px; padding:2px 9px;}
+  .panel-body{overflow-y:auto; padding:10px 14px 14px; flex:1;}
+  .panel-body::-webkit-scrollbar{width:6px;}
+  .panel-body::-webkit-scrollbar-thumb{background:var(--border); border-radius:6px;}
+  .empty-state{color:var(--muted-2); font-size:12px; text-align:center; padding:30px 10px; line-height:1.7;}
+
+  .ip-row{display:flex; align-items:center; gap:12px; padding:10px 6px; border-bottom:1px solid var(--border-soft);}
+  .ip-row:last-child{border-bottom:none;}
+  .dial{flex-shrink:0;}
+  .ip-meta{flex:1; min-width:0;}
+  .ip-addr{font-size:13px; font-weight:600; color:var(--text);}
+  .ip-sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .ip-badge{font-size:9.5px; letter-spacing:0.06em; padding:3px 7px; border-radius:5px; text-transform:uppercase; flex-shrink:0;}
+  .badge-blocked{background:rgba(255,79,94,0.12); color:var(--red); border:1px solid rgba(255,79,94,0.3);}
+  .badge-watching{background:rgba(245,166,35,0.12); color:var(--amber); border:1px solid rgba(245,166,35,0.3);}
+
+  .feed-entry{font-size:11.5px; padding:7px 6px; border-bottom:1px solid var(--border-soft); display:flex; gap:8px; animation:slide-in .35s ease;}
+  @keyframes slide-in{from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);}}
+  .feed-entry:last-child{border-bottom:none;}
+  .feed-time{color:var(--muted-2); flex-shrink:0;}
+  .feed-text{color:var(--muted); flex:1;}
+  .feed-text b{color:var(--text); font-weight:600;}
+  .feed-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0; margin-top:4px;}
+
+  .locked-panel{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    flex:1; gap:6px; color:var(--muted-2); font-size:11.5px; text-align:center; padding:20px;
+  }
+
+  /* ---------- CONTROLS ---------- */
+  .controls-panel{border:1px solid var(--border); border-radius:10px; background:var(--panel); padding:16px;}
+  .controls-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:12px;}
+  .control-box{border:1px solid var(--border-soft); border-radius:8px; padding:13px; background:var(--panel-2);}
+  .control-box h3{margin:0 0 10px; font-family:var(--font-display); font-size:11.5px; letter-spacing:0.07em; color:var(--muted); text-transform:uppercase;}
+  .field{margin-bottom:8px;}
+  .field label{display:block; font-size:10px; color:var(--muted-2); margin-bottom:4px;}
+  .field input, .field select{width:100%; background:var(--bg); border:1px solid var(--border); border-radius:5px; color:var(--text); font-family:var(--font-mono); font-size:12px; padding:7px 8px;}
+  .field input:focus, .field select:focus{outline:1px solid var(--cyan); border-color:var(--cyan);}
+  button{width:100%; border:none; border-radius:6px; padding:9px 10px; font-family:var(--font-mono); font-size:11.5px; font-weight:600; letter-spacing:0.04em; cursor:pointer; transition:opacity .15s ease, transform .1s ease;}
+  button:active{transform:scale(0.98);}
+  button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .btn-primary{background:var(--cyan); color:#06131C;}
+  .btn-danger{background:var(--red); color:#1B0507;}
+  .btn-ghost{background:transparent; border:1px solid var(--border); color:var(--text); margin-bottom:8px;}
+  .btn-ghost:hover{border-color:var(--amber); color:var(--amber);}
+  button:hover{opacity:0.88;}
+
+  footer{text-align:center; color:var(--muted-2); font-size:10.5px; margin-top:16px; letter-spacing:0.04em;}
+
+  @media (max-width: 880px){
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .main-grid{grid-template-columns:1fr;}
+    .controls-grid{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+</style>
+</head>
+<body>
+
+  <!-- ============== LOGIN SCREEN ============== -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="brand-mark">●</span>
+        <span class="brand-name">SENTINEL</span>
+      </div>
+      <div class="login-sub">THREAT INTELLIGENCE CONSOLE — sign in to continue</div>
+
+      <div class="login-error" id="loginError"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn-primary" id="loginBtn">Sign In</button>
+      </form>
+
+      <div class="login-demo">
+        <b>Demo accounts</b><br>
+        admin / AdminPass123 (Threat Administrator)<br>
+        analyst1 / AnalystPass123 (Security Analyst)<br>
+        monitor1 / MonitorPass123 (Monitoring Staff)
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== DASHBOARD (shown after login) ============== -->
+  <div id="dashboardScreen" class="hidden">
+
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-mark">●</span>
+        <span class="brand-name">SENTINEL</span>
+        <span class="brand-sub">THREAT INTELLIGENCE CONSOLE</span>
+      </div>
+      <div class="topbar-right">
+        <div class="status">
+          <span class="status-dot"></span>
+          <span id="statusText">LIVE</span>
+          <span>·</span>
+          <span id="lastUpdated">waiting for data…</span>
+        </div>
+        <div class="user-chip">
+          <span id="userName">—</span>
+          <span class="role-badge" id="userRole">—</span>
+          <button class="logout-btn" id="logoutBtn">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card attempts"><div class="stat-label">Login Attempts</div><div class="stat-value" id="statAttempts">0</div></div>
+      <div class="stat-card failed"><div class="stat-label">Failed Logins</div><div class="stat-value" id="statFailed">0</div></div>
+      <div class="stat-card blocked"><div class="stat-label">Blocked IPs</div><div class="stat-value" id="statBlocked">0</div></div>
+      <div class="stat-card events"><div class="stat-label">Attack Events</div><div class="stat-value" id="statEvents">0</div></div>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Suspicious IPs</span>
+          <span class="panel-count" id="suspiciousCount">0 tracked</span>
+        </div>
+        <div class="panel-body" id="suspiciousList">
+          <div class="empty-state">No suspicious activity detected yet.<br>Try "Simulate Brute Force" below.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Live Attack Feed</span>
+          <span class="panel-count" id="feedCount">0 events</span>
+        </div>
+        <div class="panel-body" id="feedList">
+          <div class="empty-state">Feed is quiet. Monitoring incoming requests…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-grid" id="authPanelRow">
+      <div class="panel" style="grid-column: 1 / -1;">
+        <div class="panel-header">
+          <span class="panel-title">Authentication Timeline</span>
+          <span class="panel-count" id="authLogCount">0 events</span>
+        </div>
+        <div class="panel-body" id="authLogList">
+          <div class="empty-state">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <span class="panel-title">Simulate &amp; Control</span>
+      <div class="controls-grid">
+
+        <div class="control-box">
+          <h3>Login Attempt (target system)</h3>
+          <form id="attemptForm">
+            <div class="field"><label>Username</label><input type="text" id="attemptUser" value="admin" required></div>
+            <div class="field"><label>Source IP (optional)</label><input type="text" id="attemptIp" placeholder="e.g. 203.0.113.5"></div>
+            <div class="field">
+              <label>Result</label>
+              <select id="attemptResult"><option value="false">Failed</option><option value="true">Success</option></select>
+            </div>
+            <button type="submit" class="btn-primary">Send Attempt</button>
+          </form>
+        </div>
+
+        <div class="control-box">
+          <h3>Quick Simulations</h3>
+          <button class="btn-ghost" id="simulateBrute">⚡ Simulate Brute Force</button>
+          <button class="btn-ghost" id="simulateSqli">⚡ Simulate SQLi Probe</button>
+          <button class="btn-ghost" id="refreshNow" style="margin-bottom:0;">↻ Refresh Now</button>
+        </div>
+
+        <div class="control-box" id="blockBox">
+          <h3>Block IP (admin)</h3>
+          <form id="blockForm">
+            <div class="field"><label>IP Address</label><input type="text" id="blockIp" placeholder="e.g. 198.51.100.7" required></div>
+            <div class="field"><label>Reason</label><input type="text" id="blockReason" value="manual block from dashboard"></div>
+            <button type="submit" class="btn-danger">Block IP</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <footer>SENTINEL CONSOLE · secured with JWT authentication, RBAC, account lockout &amp; session expiry</footer>
+  </div>
+
+<script>
+let TOKEN = sessionStorage.getItem("sentinel_token");
+let CURRENT_USER = null;
+
+function authHeaders(){
+  return { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" };
+}
+
+function showLogin(message){
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("dashboardScreen").classList.add("hidden");
+  const errBox = document.getElementById("loginError");
+  if(message){
+    errBox.textContent = message;
+    errBox.style.display = "block";
+  } else {
+    errBox.style.display = "none";
+  }
+  sessionStorage.removeItem("sentinel_token");
+  TOKEN = null;
+}
+
+function showDashboard(user){
+  CURRENT_USER = user;
+  document.getElementById("loginScreen").classList.add("hidden");
+  document.getElementById("dashboardScreen").classList.remove("hidden");
+  document.getElementById("userName").textContent = user.username;
+  const roleBadge = document.getElementById("userRole");
+  roleBadge.textContent = user.role;
+  roleBadge.className = "role-badge role-" + user.role;
+
+  // Role-gated UI: only admins can block IPs or see the auth timeline
+  document.getElementById("blockBox").style.display = user.role === "admin" ? "block" : "none";
+  document.getElementById("authPanelRow").style.display = user.role === "admin" ? "grid" : "none";
+
+  refreshAll();
+}
+
+// ---------- LOGIN ----------
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const btn = document.getElementById("loginBtn");
+  btn.textContent = "Signing in…";
+  btn.disabled = true;
+
+  try{
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const json = await res.json();
+
+    if(res.ok){
+      TOKEN = json.data.token;
+      sessionStorage.setItem("sentinel_token", TOKEN);
+      showDashboard({ username: json.data.username, role: json.data.role });
+    } else {
+      showLogin(json.message || "Login failed.");
+    }
+  } catch(err){
+    showLogin("Could not reach the server. Is the Flask app running?");
+  } finally {
+    btn.textContent = "Sign In";
+    btn.disabled = false;
+  }
+});
+
+// ---------- LOGOUT ----------
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try{ await fetch("/api/auth/logout", { method: "POST", headers: authHeaders() }); } catch(e){}
+  showLogin();
+});
+
+// ---------- AUTO LOGIN IF TOKEN STILL VALID ----------
+async function tryResumeSession(){
+  if(!TOKEN) return;
+  try{
+    const res = await fetch("/api/auth/me", { headers: authHeaders() });
+    const json = await res.json();
+    if(res.ok){
+      showDashboard(json.data);
+    } else {
+      showLogin();
+    }
+  } catch(e){
+    showLogin();
+  }
+}
+
+// ---------- DASHBOARD DATA ----------
+function timeNow(){ return new Date().toTimeString().split(' ')[0]; }
+
+function severityColor(reason){
+  if(/blocked/i.test(reason)) return "var(--red)";
+  if(/repeated failed/i.test(reason)) return "var(--amber)";
+  if(/suspicious_payload/i.test(reason)) return "var(--red)";
+  return "var(--cyan)";
+}
+
+function authEventColor(event){
+  if(/SUCCESS|REGISTERED|ENABLED/i.test(event)) return "var(--green)";
+  if(/LOCKED|BLOCKED|DENIED|DISABLED|SUSPICIOUS/i.test(event)) return "var(--red)";
+  if(/LOGOUT/i.test(event)) return "var(--muted)";
+  return "var(--cyan)";
+}
+
+function threatDial(score){
+  const r = 16, c = 2*Math.PI*r;
+  const pct = Math.max(0, Math.min(100, score));
+  const offset = c - (pct/100)*c;
+  let color = "var(--green)";
+  if(pct >= 70) color = "var(--red)";
+  else if(pct >= 30) color = "var(--amber)";
+  return `<svg width="44" height="44" viewBox="0 0 44 44" class="dial">
+      <circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--border-soft)" stroke-width="4"/>
+      <circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="4"
+        stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="${color}" font-weight="600">${pct}</text>
+    </svg>`;
+}
+
+async function fetchJSON(url, opts){
+  const res = await fetch(url, opts);
+  const json = await res.json();
+  return { ok: res.ok, status: res.status, json };
+}
+
+async function refreshAll(){
+  try{
+    const calls = [
+      fetchJSON("/api/threat-summary", { headers: authHeaders() }),
+      fetchJSON("/api/suspicious-ips", { headers: authHeaders() }),
+      fetchJSON("/api/attack-logs", { headers: authHeaders() }),
+    ];
+    if(CURRENT_USER && CURRENT_USER.role === "admin"){
+      calls.push(fetchJSON("/api/auth/logs", { headers: authHeaders() }));
+    }
+    const responses = await Promise.all(calls);
+
+    // session expired / revoked mid-session
+    if(responses.some(r => r.status === 401)){
+      showLogin("Your session has expired. Please sign in again.");
+      return;
+    }
+
+    const [summary, suspicious, logs, authLogs] = responses;
+
+    if(summary.ok){
+      const d = summary.json.data;
+      document.getElementById("statAttempts").textContent = d.total_login_attempts;
+      document.getElementById("statFailed").textContent = d.total_failed_logins;
+      document.getElementById("statBlocked").textContent = d.total_blocked_ips;
+      document.getElementById("statEvents").textContent = d.total_attack_events;
+    }
+
+    if(suspicious.ok){
+      const list = suspicious.json.data;
+      document.getElementById("suspiciousCount").textContent = list.length + " tracked";
+      const container = document.getElementById("suspiciousList");
+      container.innerHTML = list.length === 0
+        ? `<div class="empty-state">No suspicious activity detected yet.<br>Try "Simulate Brute Force" below.</div>`
+        : list.map(ip => `
+          <div class="ip-row">
+            ${threatDial(ip.threat_score)}
+            <div class="ip-meta">
+              <div class="ip-addr">${ip.ip}</div>
+              <div class="ip-sub">${ip.failed_attempts} failed attempts</div>
+            </div>
+            <span class="ip-badge ${ip.blocked ? 'badge-blocked' : 'badge-watching'}">${ip.blocked ? 'Blocked' : 'Watching'}</span>
+          </div>`).join("");
+    }
+
+    if(logs.ok){
+      const events = [...logs.json.data].reverse();
+      document.getElementById("feedCount").textContent = events.length + " events";
+      const container = document.getElementById("feedList");
+      container.innerHTML = events.length === 0
+        ? `<div class="empty-state">Feed is quiet. Monitoring incoming requests…</div>`
+        : events.slice(0, 40).map(ev => `
+          <div class="feed-entry">
+            <span class="feed-dot" style="background:${severityColor(ev.reason)}"></span>
+            <span class="feed-time">${ev.time.split('T')[1].split('.')[0]}</span>
+            <span class="feed-text"><b>${ev.ip}</b> on ${ev.path} — ${ev.reason}</span>
+          </div>`).join("");
+    }
+
+    if(authLogs && authLogs.ok){
+      const events = authLogs.json.data;
+      document.getElementById("authLogCount").textContent = events.length + " events";
+      const container = document.getElementById("authLogList");
+      container.innerHTML = events.length === 0
+        ? `<div class="empty-state">No authentication activity yet.</div>`
+        : events.slice(0, 50).map(ev => `
+          <div class="feed-entry">
+            <span class="feed-dot" style="background:${authEventColor(ev.event)}"></span>
+            <span class="feed-time">${ev.time.split('T')[1].split('.')[0]}</span>
+            <span class="feed-text"><b>${ev.event}</b> — ${ev.username || 'unknown user'} from ${ev.ip || 'n/a'} ${ev.detail ? '· ' + ev.detail : ''}</span>
+          </div>`).join("");
+    }
+
+    document.getElementById("lastUpdated").textContent = "updated " + timeNow();
+    document.getElementById("statusText").textContent = "LIVE";
+  } catch(err){
+    document.getElementById("statusText").textContent = "CONNECTION ERROR";
+    console.error(err);
+  }
+}
+
+// ---------- CONTROLS ----------
+document.getElementById("attemptForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("attemptUser").value;
+  const ip = document.getElementById("attemptIp").value.trim();
+  const success = document.getElementById("attemptResult").value === "true";
+  const headers = { "Content-Type": "application/json" };
+  if(ip) headers["X-Forwarded-For"] = ip;
+  await fetch("/api/login-attempt", { method:"POST", headers, body: JSON.stringify({username, success}) });
+  refreshAll();
+});
+
+document.getElementById("blockForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const ip = document.getElementById("blockIp").value.trim();
+  const reason = document.getElementById("blockReason").value;
+  await fetch("/api/block-ip", { method:"POST", headers: authHeaders(), body: JSON.stringify({ip, reason}) });
+  refreshAll();
+});
+
+document.getElementById("refreshNow").addEventListener("click", refreshAll);
+
+document.getElementById("simulateBrute").addEventListener("click", async () => {
+  const fakeIp = "203.0.113." + Math.floor(Math.random()*250 + 1);
+  for(let i=0;i<4;i++){
+    await fetch("/api/login-attempt", {
+      method:"POST",
+      headers: { "Content-Type":"application/json", "X-Forwarded-For": fakeIp },
+      body: JSON.stringify({ username: "admin", success: false })
+    });
+  }
+  refreshAll();
+});
+
+document.getElementById("simulateSqli").addEventListener("click", async () => {
+  const fakeIp = "198.51.100." + Math.floor(Math.random()*250 + 1);
+  await fetch("/api/login-attempt", {
+    method:"POST",
+    headers: { "Content-Type":"application/json", "X-Forwarded-For": fakeIp },
+    body: JSON.stringify({ username: "' OR 1=1 --", success: false })
+  });
+  refreshAll();
+});
+
+// ---------- INIT ----------
+tryResumeSession();
+setInterval(() => { if(TOKEN) refreshAll(); }, 4000);
+</script>
+
+</body>
+</html>
