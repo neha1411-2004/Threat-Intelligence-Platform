@@ -1,4 +1,4 @@
-# Day 7 — Secure Analyst Authentication & Threat Access Control
+ Secure Analyst Authentication & Threat Access Control
 
 Adds a full authentication layer (bcrypt password hashing, JWT sessions, RBAC,
 account lockout, IP-based login restriction, and authentication logging) on
